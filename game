@@ -1,0 +1,510 @@
+'''
+    "Simplegui Tetris"
+    @author Miguel Alejandro Moreno Barrientos, 2015
+    @version 0.1
+'''
+
+import simplegui as sg
+from random import choice, randrange as rnd
+
+'''
+GLOBALS
+'''
+# constants
+MAX_LEVELS = 12  # nยบ game levels
+POINTS_LEVEL = 15000  # points for level up
+
+# font size
+fsize = 24
+
+# canvas size
+cwidth, cheight = 400, 600
+
+# Tetris grid size
+width, height = 10, 20
+
+# Tetris canvas size
+twidth, theight = cwidth * 2 / 3, cheight
+
+# grid matrix
+grid = [ [ None for i in range( width ) ] for i in range( height ) ]
+
+# game counters
+level = 1
+score = 0
+lines = 0
+game_over = False
+win = False
+
+# current shapes
+current = None
+position = None
+orientation = None
+next = None
+
+# shapes
+shapes = (
+    { # U Pentomino
+        "color": "#5af",
+        "matrix": (
+            ( ( 1, 1, 0 ),
+              ( 1, 0, 0 ),
+              ( 1, 1, 0 ) ),
+            
+            ( ( 1, 1, 1 ),
+              ( 1, 0, 1 ),
+              ( 0, 0, 0 ) ),
+
+            ( ( 0, 1, 1 ),
+              ( 0, 0, 1 ),
+              ( 0, 1, 1 ) ),
+            
+            ( ( 1, 0, 1 ),
+              ( 1, 1, 1 ),
+              ( 0, 0, 0 ) )
+        )
+    },
+    { # T
+        "color": "green",
+        "matrix": (
+            ( ( 1, 1, 1 ),
+              ( 0, 1, 0 ),
+              ( 0, 0, 0 ) ),
+            
+            ( ( 0, 0, 1 ),
+              ( 0, 1, 1 ),
+              ( 0, 0, 1 ) ),
+
+            ( ( 0, 1, 0 ),
+              ( 1, 1, 1 ),
+              ( 0, 0, 0 ) ),
+            
+            ( ( 1, 0, 0 ),
+              ( 1, 1, 0 ),
+              ( 1, 0, 0 ) )
+        )
+    },
+    { # square
+        "color": "yellow",
+        "matrix": (
+            ( ( 1, 1 ),
+              ( 1, 1 ) ),
+        )
+    },
+    { # I
+        "color": "cyan",
+        "matrix": (
+            ( ( 0, 0, 0, 0 ),
+              ( 1, 1, 1, 1 ),
+              ( 0, 0, 0, 0 ),
+              ( 0, 0, 0, 0 ) ),
+            
+            ( ( 0, 1, 0, 0 ),
+              ( 0, 1, 0, 0 ),
+              ( 0, 1, 0, 0 ),
+              ( 0, 1, 0, 0 ) )
+        )
+    },
+    { # X Pentomino
+        "color": "orange",
+        "matrix": (
+            ( ( 0, 1, 0 ),
+              ( 1, 1, 1 ),
+              ( 0, 1, 0 ) ),
+        )
+    },
+    { # P Pentomino
+        "color": "gray",
+        "matrix": (
+            ( ( 1, 1, 1 ),
+              ( 0, 1, 1 ),
+              ( 0, 0, 0 ) ),
+            
+            ( ( 0, 0, 1 ),
+              ( 0, 1, 1 ),
+              ( 0, 1, 1 ) ),
+            
+            ( ( 1, 1, 0 ),
+              ( 1, 1, 1 ),
+              ( 0, 0, 0 ) ),
+            
+            ( ( 1, 1, 0 ),
+              ( 1, 1, 0 ),
+              ( 1, 0, 0 ) )
+        )
+    },
+    { # Z Pentomino
+        "color": "white",
+        "matrix": (
+            ( ( 0, 0, 1 ),
+              ( 1, 1, 1 ),
+              ( 1, 0, 0 ) ),
+            
+            ( ( 1, 1, 0 ),
+              ( 0, 1, 0 ),
+              ( 0, 1, 1 ) )
+        )
+    },
+    { # L
+        "color": "brown",
+        "matrix": (
+            ( ( 0, 1, 0 ),
+              ( 0, 1, 0 ),
+              ( 0, 1, 1 ) ),
+            
+            ( ( 1, 1, 1 ),
+              ( 1, 0, 0 ),
+              ( 0, 0, 0 ) ),
+            
+            ( ( 0, 1, 1 ),
+              ( 0, 0, 1 ),
+              ( 0, 0, 1 ) ),
+            
+            ( ( 0, 0, 1 ),
+              ( 1, 1, 1 ),
+              ( 0, 0, 0 ) )
+        )
+    },
+    { # J
+        "color": "blue",
+        "matrix": (
+            ( ( 0, 1, 0 ),
+              ( 0, 1, 0 ),
+              ( 1, 1, 0 ) ),
+            
+            ( ( 1, 0, 0 ),
+              ( 1, 1, 1 ),
+              ( 0, 0, 0 ) ),
+            
+            ( ( 0, 1, 1 ),
+              ( 0, 1, 0 ),
+              ( 0, 1, 0 ) ),
+            
+            ( ( 1, 1, 1 ),
+              ( 0, 0, 1 ),
+              ( 0, 0, 0 ) )
+        )
+    },
+    { # S
+        "color": "red",
+        "matrix": (
+            ( ( 0, 1, 1 ),
+              ( 1, 1, 0 ),
+              ( 0, 0, 0 ) ),
+            
+            ( ( 0, 1, 0 ),
+              ( 0, 1, 1 ),
+              ( 0, 0, 1 ) )
+        )
+    },
+    { # Z
+        "color": "pink",
+        "matrix": (
+            ( ( 1, 1, 0 ),
+              ( 0, 1, 1 ),
+              ( 0, 0, 0 ) ),
+            
+            ( ( 0, 1, 0 ),
+              ( 1, 1, 0 ),
+              ( 1, 0, 0 ) )
+        )
+    }
+)
+
+
+'''
+HELPERS
+'''
+def restart():
+    global timer, grid, score, lines, level, game_over, win, current, next
+    timer.stop()
+    grid = [ [ None for i in range( width ) ] for i in range( height ) ]
+    current = next = None
+    score = 0
+    lines = 0
+    level = 1
+    game_over = win = False
+    timer = sg.create_timer( speed(), timer_handler )
+    timer.start()
+    
+
+def speed():
+    ''' calculate timer interval from level 
+        using lineal interpolation '''
+    return int( 200 + ( MAX_LEVELS - level ) * 800 / ( MAX_LEVELS - 1 ) )
+
+
+def next_level():
+    ''' goes to next level '''
+    global timer, grid, level, win, current, next, score
+
+    timer.stop()  # new faster timer is needed
+    score += 100 * level  # bonus for completed level
+    level += score / POINTS_LEVEL  # set level from score
+    
+    if level >= MAX_LEVELS: # check PLAYER WIN
+        timer.stop()
+        win = True
+    else: # new level timer
+        current = next = None
+        grid = [ [ None for i in range( width ) ] for i in range( height ) ]
+        # create starting squares
+        for i in range( level ):
+            grid[ rnd( height * 2 / 3, height ) ][ rnd( width ) ] = \
+                "rgb(%s,%s,%s)" % ( rnd(256), rnd(256), rnd(256) )
+        
+        timer = sg.create_timer( speed(), timer_handler )
+        timer.start()
+
+
+def draw_grid( canvas ):
+    ''' draws squares in grid matrix '''
+    swidth = twidth / float( width )
+    sheight = theight / float( height )
+    
+    for row in range( height ):
+        for col in range( width ):
+            if grid[row][col] != None:
+                color = grid[row][col]
+                sx, sy = col * swidth, row * sheight
+                canvas.draw_polygon( [ ( sx, sy ),
+                                       ( sx, sy + sheight ),
+                                       ( sx + swidth, sy + sheight ),
+                                       ( sx + swidth, sy )
+                                     ],
+                                     1, "black", color )
+
+                
+def draw_shape( canvas, shape, position, orientation ):
+    ''' draws a shape in a position '''
+    color = shape[ "color" ]
+    matrix = shape[ "matrix" ][ orientation ]
+    x, y = position[0], position[1]
+    
+    swidth = twidth / float( width )
+    sheight = theight / float( height )
+    
+    for row in range( len( matrix ) ):
+        for col in range( len( matrix[0] ) ):
+            if matrix[row][col] != 0:
+                sx, sy = ( x + col ) * swidth, ( y + row ) * sheight
+                canvas.draw_polygon( [ ( sx, sy ),
+                                       ( sx, sy + sheight ),
+                                       ( sx + swidth, sy + sheight ),
+                                       ( sx + swidth, sy )
+                                     ],
+                                     1, "black", color )
+
+                
+def check_lines():
+    
+    lines = 0  # lines deleted
+    
+    for row in range( height ):
+        delete = True  # flag for delete line
+        
+        # check for completed line
+        for col in range( width ):
+            if grid[row][col] == None:
+                delete = False
+                break       
+        
+        # delete line and drop above lines
+        if delete:
+            lines += 1
+            
+            # drop rows above 'row'
+            for rowi in range( row, 0, -1 ):
+                grid[rowi] = grid[ rowi - 1 ]
+                
+            # delete row 0
+            grid[0] = [ None for col in range( width ) ]
+
+    return lines
+                
+
+def detect_collision( matrix, position ):
+    x, y = position[0], position[1]
+    for row in range( len( matrix ) ):
+        for col in range( len( matrix[0] ) ):
+            if matrix[row][col] != 0 and \
+                ( y + row >= height or \
+                  x + col < 0 or \
+                  x + col >= width or \
+                 grid[ y + row ][ x + col ] != None ):
+                return True
+    
+    return False
+    
+
+'''
+HANDLERS
+'''
+def key_handler( key ):
+    global position, orientation
+
+    # check for pause
+    if not game_over and not win:
+        timer.stop() if key == sg.KEY_MAP[ "p" ] \
+        and timer.is_running() \
+        else timer.start()
+    
+    # ignore user actions, shape not prepared or game stopped
+    if current == None or not timer.is_running():
+        return None
+    
+    if key == sg.KEY_MAP[ "up" ]:  # rotate shape
+        next_orientation = ( orientation + 1 ) % len( current[ "matrix" ] )
+        if not detect_collision( current[ "matrix" ][ next_orientation ],
+                                 position ):
+            orientation = next_orientation
+        else: # check for shapes near other shapes or walls and try to adjust position
+            for sx in range( 1, len( current[ "matrix" ][ orientation ] ) - 1 ):
+                if not detect_collision( current[ "matrix" ][ next_orientation ],
+                                         ( position[0] + sx, position[1] ) ):
+                    position = ( position[0] + sx, position[1] )
+                    orientation = next_orientation
+                    break
+                elif not detect_collision( current[ "matrix" ][ next_orientation ],
+                                         ( position[0] - sx, position[1] ) ):
+                    position = ( position[0] - sx, position[1] )
+                    orientation = next_orientation
+                    break
+    
+    elif key == sg.KEY_MAP[ "down" ]:  # down fast shape
+        if not detect_collision( current[ "matrix" ][ orientation ],
+                                ( position[0], position[1] + 1 ) ):
+            position = ( position[0], position[1] + 1 )
+    
+    elif key == sg.KEY_MAP[ "left" ]:  # move left shape
+        if not detect_collision( current[ "matrix" ][ orientation ],
+                                ( position[0] - 1, position[1] ) ):
+            position = ( position[0] - 1, position[1] )
+    
+    elif key == sg.KEY_MAP[ "right" ]:  # move right shape
+        if not detect_collision( current[ "matrix" ][ orientation ],
+                                ( position[0] + 1, position[1] ) ):
+            position = ( position[0] + 1, position[1] )
+            
+
+def draw_handler( canvas ):
+    
+    # draw grid
+    draw_grid( canvas )
+    
+    # draw current shape
+    if current != None:
+        draw_shape( canvas, current, position, orientation )
+    
+    # draw grid borders
+    canvas.draw_polyline( [ ( 0, 0 ),
+                         ( 0, theight - 1 ),
+                         ( twidth - 1, theight - 1 ),
+                         ( twidth - 1, 0 ) ],
+                         4, "blue" )
+    
+    # draw info
+    canvas.draw_text( "Level", ( twidth + 10, fsize ), fsize, "violet" )
+    canvas.draw_text( "%02i" % level, ( twidth + 30, 2 * fsize ), fsize, "violet" )
+    canvas.draw_text( "Score", ( twidth + 10, 4 * fsize ), fsize, "blue" )
+    canvas.draw_text( str( score ), ( twidth + 40, 5 * fsize ), fsize, "blue" )
+    canvas.draw_text( "Lines", ( twidth + 10, 7 * fsize ), fsize, "orange" )
+    canvas.draw_text( str( lines ), ( twidth + 40, 8 * fsize ), fsize, "orange" )
+    if next != None:
+        draw_shape( canvas, next, ( width + 1, height - 5 ), 0 )
+
+    # draw GAME OVER message
+    if game_over:
+        tw = frame.get_canvas_textwidth( 'GAME OVER', 40, 'serif' )
+        canvas.draw_text( "GAME OVER",
+                          ( ( twidth - tw ) / 2 + 1, ( theight - 40 ) / 2 + 1 ),
+                          40, "black", "serif" )
+        canvas.draw_text( "GAME OVER",
+                          ( ( twidth - tw ) / 2, ( theight - 40 ) / 2 ),
+                          40, "#ff5", "serif" )
+    # draw VICTORY message
+    elif win:
+        tw = frame.get_canvas_textwidth( 'YOU WIN', 40, 'serif' )
+        canvas.draw_text( "YOU WIN",
+                          ( ( twidth - tw ) / 2 + 1, ( theight - 40 ) / 2 + 1 ),
+                          40, "black", "serif" )
+        canvas.draw_text( "YOU WIN",
+                          ( ( twidth - tw ) / 2, ( theight - 40 ) / 2 ),
+                          40, "rgb(%s,%s,%s)" % ( rnd(256), rnd(256), rnd(256) ),
+                         "serif" )        
+    # draw pause message
+    elif not timer.is_running():
+        tw = frame.get_canvas_textwidth( '---PAUSE---', 40, 'serif' )
+        canvas.draw_text( "---PAUSE---",
+                          ( ( twidth - tw ) / 2 + 1, ( theight - 40 ) / 2 + 1 ),
+                          40, "black", "serif" )
+        canvas.draw_text( "---PAUSE---",
+                          ( ( twidth - tw ) / 2, ( theight - 40 ) / 2 ),
+                          40, "#ff5", "serif" )
+
+
+def timer_handler():
+    global current, next, position, orientation, score, lines, timer, game_over, win
+    # set current and next shapes
+    new = False  # flag for new shapes
+    if current == None:
+        if next != None:
+            current = next
+        else:
+            current = choice( shapes )
+        position = ( width / 2 - 1, 0 )
+        orientation = 0
+        next = choice( shapes )
+        new = True  # don't down the shape at starting
+
+    # get current shape params
+    color = current[ "color" ]
+    matrix = current[ "matrix" ][ orientation ]
+    x, y = position[0], position[1]
+
+    # check starting collision, GAME OVER
+    if detect_collision( matrix, ( x, y ) ):
+        timer.stop()
+        game_over = True
+        return None
+
+    # down or fix shape
+    if not detect_collision( matrix, ( x, y + 1 ) ): # down
+        if not new:
+            position = ( x, y + 1 )
+    else: # can't down, fix shape
+        for row in range( len( matrix ) ):
+            for col in range( len( matrix[0] ) ):
+                if matrix[row][col] != 0:
+                    grid[ y + row ][ x + col ] = color
+                    
+        # check for completed lines
+        del_lines = check_lines()  # number of lines completed and deleted
+        lines += del_lines  # update line score
+        score += ( 0, 1000, 3000, 6000, 10000 )[del_lines]  # update score
+        
+        # check for next level
+        if score / POINTS_LEVEL >= level:  # new level every 'POINTS_LEVEL' points
+            next_level()          
+                    
+        # new shape
+        current = None
+        
+
+    
+'''
+START
+'''
+# create frame
+frame = sg.create_frame( "Simplegui Tetris", cwidth, cheight, 120 )
+frame.set_canvas_background( "#cfa" )
+frame.add_button( "Restart", restart )
+
+# set handlers
+frame.set_keydown_handler( key_handler )
+frame.set_draw_handler( draw_handler )
+timer = sg.create_timer( speed(), timer_handler )
+
+# start frame
+timer.start()
+frame.start()
